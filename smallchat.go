@@ -54,6 +54,10 @@ func handleClient(client *Client) {
 		n, err := client.conn.Read(buf)
 		if err != nil {
 			fmt.Printf("client left: %s\n", client.conn.RemoteAddr())
+			chatState.clientsLock.Lock()
+			delete(chatState.clients, client.conn)
+			chatState.numClients--
+			chatState.clientsLock.Unlock()
 			return
 		}
 
