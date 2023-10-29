@@ -63,7 +63,7 @@ func handleClient(client *Client) {
 
 		msg := string(buf[:n])
 		msg = strings.TrimSpace(msg)
-		if msg[0] == '/' {
+		if len(msg) > 0 && msg[0] == '/' {
 			// 处理命令
 			parts := strings.SplitN(msg, " ", 2)
 			cmd := parts[0]
@@ -79,7 +79,7 @@ func handleClient(client *Client) {
 		chatState.clientsLock.RLock()
 		for conn, cl := range chatState.clients {
 			if cl != client {
-				conn.Write([]byte(client.nick + ": " + msg))
+				conn.Write([]byte(client.nick + ": " + msg + "\n"))
 			}
 		}
 		chatState.clientsLock.RUnlock()
