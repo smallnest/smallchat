@@ -84,12 +84,7 @@ func handleClient(client *Client) {
 		chatState.clientsLock.RLock()
 		for conn, cl := range chatState.clients {
 			if cl != client {
-				go func() {
-					cl.m.Lock()
-					defer cl.m.Unlock()
-					conn.Write([]byte(client.nick + ": " + msg + "\n"))
-				}()
-
+				conn.Write([]byte(client.nick + ": " + msg + "\n"))
 			}
 		}
 		chatState.clientsLock.RUnlock()
