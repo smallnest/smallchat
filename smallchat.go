@@ -21,6 +21,7 @@ var (
 type Client struct {
 	conn net.Conn
 	nick string
+	m    sync.Mutex
 }
 
 type ChatState struct {
@@ -83,7 +84,12 @@ func handleClient(client *Client) {
 		chatState.clientsLock.RLock()
 		for conn, cl := range chatState.clients {
 			if cl != client {
-				conn.Write([]byte(client.nick + ": " + msg + "\n"))
+				go func() {
+					cl.m.Lock()
+					defer cl.m.Unlock()
+					conn.Write([]byte(client.nick + ": " + msg + "\n"))
+				}()
+
 			}
 		}
 		chatState.clientsLock.RUnlock()
