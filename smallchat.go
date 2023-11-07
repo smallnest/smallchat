@@ -21,6 +21,7 @@ var (
 type Client struct {
 	conn net.Conn
 	nick string
+	m    sync.Mutex
 }
 
 type ChatState struct {
@@ -68,6 +69,10 @@ func handleClient(client *Client) {
 			parts := strings.SplitN(msg, " ", 2)
 			cmd := parts[0]
 			if cmd == "/nick" && len(parts) > 1 {
+				if len(parts[1]) > maxNickLen {
+					client.conn.Write([]byte("nick name too long\n"))
+					continue
+				}
 				client.nick = parts[1]
 			}
 			continue
@@ -79,7 +84,12 @@ func handleClient(client *Client) {
 		chatState.clientsLock.RLock()
 		for conn, cl := range chatState.clients {
 			if cl != client {
-				conn.Write([]byte(client.nick + ": " + msg + "\n"))
+				go func() {
+					cl.m.Lock()
+					defer cl.m.Unlock()
+					conn.Write([]byte(client.nick + ": " + msg + "\n"))
+				}()
+
 			}
 		}
 		chatState.clientsLock.RUnlock()
@@ -102,6 +112,12 @@ func main() {
 		client.nick = fmt.Sprintf("user%d", conn.RemoteAddr().(*net.TCPAddr).Port)
 
 		chatState.clientsLock.Lock()
+		if chatState.numClients >= maxClients {
+			fmt.Printf("too many clients, reject %s\n", conn.RemoteAddr())
+			conn.Close()
+			chatState.clientsLock.Unlock()
+			continue
+		}
 		chatState.clients[conn] = client
 		chatState.numClients++
 		chatState.clientsLock.Unlock()
