@@ -21,7 +21,6 @@ var (
 type Client struct {
 	conn net.Conn
 	nick string
-	m    sync.Mutex
 }
 
 type ChatState struct {
