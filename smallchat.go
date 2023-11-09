@@ -81,6 +81,13 @@ func handleClient(client *Client) {
 			continue
 		}
 
+		if len(msg) == 0 {
+			continue
+		}
+		if buf[0] == 255 || strings.ToLower(msg) == "quit" {
+			closeClient(client)
+			return
+		}
 		fmt.Printf("%s: %s\n", client.nick, msg)
 
 		// 将消息转发给其他客户端
