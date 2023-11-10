@@ -61,12 +61,7 @@ func handleClient(client *Client) {
 		n, err := client.conn.Read(buf)
 		if err != nil {
 			fmt.Printf("client left: %s\n", client.conn.RemoteAddr())
-			chatState.clientsLock.Lock()
-			close(client.readChan)
-			client.conn.Close()
-			delete(chatState.clients, client.conn)
-			chatState.numClients--
-			chatState.clientsLock.Unlock()
+			closeClient(client)
 			return
 		}
 
@@ -86,17 +81,33 @@ func handleClient(client *Client) {
 			continue
 		}
 
+		if len(msg) == 0 {
+			continue
+		}
+		if buf[0] == 255 || strings.ToLower(msg) == "quit" {
+			closeClient(client)
+			return
+		}
 		fmt.Printf("%s: %s\n", client.nick, msg)
 
 		// 将消息转发给其他客户端
 		chatState.clientsLock.RLock()
 		for _, cl := range chatState.clients {
 			if cl != client {
-				cl.readChan <- client.nick + ": " + msg + "\n"
+				cl.readChan <- ">> " + client.nick + ": " + msg + "\n"
 			}
 		}
 		chatState.clientsLock.RUnlock()
 	}
+}
+
+func closeClient(client *Client) {
+	chatState.clientsLock.Lock()
+	close(client.readChan)
+	client.conn.Close()
+	delete(chatState.clients, client.conn)
+	chatState.numClients--
+	chatState.clientsLock.Unlock()
 }
 
 func main() {
